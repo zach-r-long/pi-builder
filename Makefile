@@ -152,7 +152,8 @@ rpi3: BOARD=rpi3
 rpi4: BOARD=rpi4
 zero: BOARD=zero
 zerow: BOARD=zerow
-rpi rpi2 rpi3 rpi4 zero zerow: os
+rpi3cm: BOARD=rpi3cm
+rpi rpi2 rpi3 rpi4 zero zerow rpi3cm: os
 
 
 run: $(__DEP_BINFMT)
