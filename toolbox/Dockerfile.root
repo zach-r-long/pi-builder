@@ -5,6 +5,7 @@ RUN pacman --noconfirm -Syu \
 		base-devel \
 		arp-scan \
 		python \
+		python3 \
 		parted \
 		dosfstools \
 		rsync \
