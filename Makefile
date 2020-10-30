@@ -31,7 +31,7 @@ STAGES ?= __init__ os watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
 HOSTNAME ?= pi
 LOCALE ?= en_US
 TIMEZONE ?= America/New_York
-REPO_URL = http://il.us.mirror.archlinuxarm.org 
+REPO_URL = http://il.us.mirror.archlinuxarm.org
 BUILD_OPTS ?=
 
 CARD ?= /dev/mmcblk0
