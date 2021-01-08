@@ -32,6 +32,17 @@ HOSTNAME ?= pi
 LOCALE ?= en_US
 TIMEZONE ?= America/New_York
 REPO_URL = http://il.us.mirror.archlinuxarm.org
+ARCH ?= arm
+UBOOT ?=
+STAGES ?= __init__ os pikvm-repo watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
+
+HOSTNAME ?= pi
+LOCALE ?= en_US
+TIMEZONE ?= Europe/Moscow
+#REPO_URL ?= http://mirror.yandex.ru/archlinux-arm
+REPO_URL = http://de3.mirror.archlinuxarm.org
+PIKVM_REPO_URL ?= https://pikvm.org/repos
+PIKVM_REPO_KEY ?= 912C773ABBD1B584
 BUILD_OPTS ?=
 
 CARD ?= /dev/mmcblk0
@@ -44,7 +55,7 @@ QEMU_RM ?= 1
 
 
 # =====
-_IMAGES_PREFIX = pi-builder
+_IMAGES_PREFIX = pi-builder-$(ARCH)
 _TOOLBOX_IMAGE = $(_IMAGES_PREFIX)-toolbox
 
 _TMP_DIR = ./.tmp
@@ -64,6 +75,27 @@ _RPI_ROOTFS_URL = $(REPO_URL)/os/ArchLinuxARM-$(shell bash -c " \
 	else exit 1; \
 	fi \
 ")-latest.tar.gz
+_RPI_ROOTFS_TYPE = ${shell bash -c " \
+	case '$(ARCH)' in \
+		arm) \
+			case '$(BOARD)' in \
+				rpi|zero|zerow) echo 'rpi';; \
+				rpi2|rpi3|rpi3cm) echo 'rpi-2';; \
+				rpi4) echo 'rpi-4';; \
+				generic) echo 'armv7';; \
+			esac;; \
+		aarch64) \
+			case '$(BOARD)' in \
+				rpi3|rpi4) echo 'rpi-aarch64';; \
+				generic) echo 'aarch64';; \
+			esac;; \
+	esac \
+"}
+ifeq ($(_RPI_ROOTFS_TYPE),)
+$(error Invalid board and architecture combination: $(BOARD)-$(ARCH))
+endif
+
+_RPI_ROOTFS_URL = $(REPO_URL)/os/ArchLinuxARM-$(_RPI_ROOTFS_TYPE)-latest.tar.gz
 _RPI_BASE_ROOTFS_TGZ = $(_TMP_DIR)/base-rootfs-$(BOARD).tar.gz
 _RPI_BASE_IMAGE = $(_IMAGES_PREFIX)-base-$(BOARD)
 _RPI_RESULT_IMAGE = $(PROJECT)-$(_IMAGES_PREFIX)-result-$(BOARD)
@@ -82,17 +114,17 @@ $(filter $(shell echo $(1) | tr A-Z a-z),yes on 1)
 endef
 
 define say
-@ tput bold
-@ tput setaf 2
+@ tput -Txterm bold
+@ tput -Txterm setaf 2
 @ echo "===== $1 ====="
-@ tput sgr0
+@ tput -Txterm sgr0
 endef
 
 define die
-@ tput bold
-@ tput setaf 1
+@ tput -Txterm bold
+@ tput -Txterm setaf 1
 @ echo "===== $1 ====="
-@ tput sgr0
+@ tput -Txterm sgr0
 @ exit 1
 endef
 
@@ -104,6 +136,7 @@ define show_running_config
 $(call say,"Running configuration")
 @ echo "    PROJECT = $(PROJECT)"
 @ echo "    BOARD   = $(BOARD)"
+@ echo "    ARCH    = $(ARCH)"
 @ echo "    STAGES  = $(STAGES)"
 @ echo
 @ echo "    BUILD_OPTS = $(BUILD_OPTS)"
@@ -111,6 +144,8 @@ $(call say,"Running configuration")
 @ echo "    LOCALE     = $(LOCALE)"
 @ echo "    TIMEZONE   = $(TIMEZONE)"
 @ echo "    REPO_URL   = $(REPO_URL)"
+@ echo "    PIKVM_REPO_URL   = $(PIKVM_REPO_URL)"
+@ echo "    PIKVM_REPO_KEY   = $(PIKVM_REPO_KEY)"
 @ echo
 @ echo "    CARD = $(CARD)"
 @ echo
@@ -119,7 +154,7 @@ $(call say,"Running configuration")
 endef
 
 define check_build
-$(if $(wildcard $(_BUILDED_IMAGE_CONFIG)),,$(call die,"Not builded yet"))
+$(if $(wildcard $(_BUILDED_IMAGE_CONFIG)),,$(call die,"Not built yet"))
 endef
 
 
@@ -153,8 +188,8 @@ rpi4: BOARD=rpi4
 zero: BOARD=zero
 zerow: BOARD=zerow
 rpi3cm: BOARD=rpi3cm
-rpi rpi2 rpi3 rpi4 zero zerow rpi3cm: os
-
+generic: BOARD=generic
+rpi rpi2 rpi3 rpi4 zero zerow generic rpi3cm: os
 
 run: $(__DEP_BINFMT)
 	$(call check_build)
@@ -196,7 +231,7 @@ binfmt: $(__DEP_TOOLBOX)
 
 
 scan: $(__DEP_TOOLBOX)
-	$(call say,"Searching pies in the local network")
+	$(call say,"Searching for Pis in the local network")
 	docker run \
 			--rm \
 			--tty \
@@ -213,9 +248,12 @@ os: $(__DEP_BINFMT) _buildctx
 			$(if $(TAG),--tag $(TAG),) \
 			$(if $(call optbool,$(NC)),--no-cache,) \
 			--build-arg "BOARD=$(BOARD)" \
+			--build-arg "ARCH=$(ARCH)" \
 			--build-arg "LOCALE=$(LOCALE)" \
 			--build-arg "TIMEZONE=$(TIMEZONE)" \
 			--build-arg "REPO_URL=$(REPO_URL)" \
+			--build-arg "PIKVM_REPO_URL=$(PIKVM_REPO_URL)" \
+			--build-arg "PIKVM_REPO_KEY=$(PIKVM_REPO_KEY)" \
 			--build-arg "REBUILD=$(shell uuidgen)" \
 			$(BUILD_OPTS) \
 		$(_BUILD_DIR)
@@ -264,7 +302,7 @@ $(_QEMU_COLLECTION):
 	curl -L -f $(_QEMU_STATIC_BASE_URL)/`curl -s -S -L -f $(_QEMU_STATIC_BASE_URL)/ \
 			-z $(_TMP_DIR)/qemu-user-static-deb/qemu-user-static.deb \
 				| grep qemu-user-static \
-				| grep _i386.deb \
+				| grep _$(if $(filter-out aarch64,$(ARCH)),i386,amd64).deb \
 				| sort -n \
 				| tail -n 1 \
 				| sed -n 's/.*href="\([^"]*\).*/\1/p'` \
@@ -275,7 +313,7 @@ $(_QEMU_COLLECTION):
 		&& tar -xJf data.tar.xz
 	rm -rf $(_QEMU_COLLECTION).tmp
 	mkdir $(_QEMU_COLLECTION).tmp
-	cp $(_TMP_DIR)/qemu-user-static-deb/usr/bin/qemu-arm-static $(_QEMU_COLLECTION).tmp
+	cp $(_TMP_DIR)/qemu-user-static-deb/usr/bin/qemu-$(ARCH)-static $(_QEMU_COLLECTION).tmp
 	mv $(_QEMU_COLLECTION).tmp $(_QEMU_COLLECTION)
 	$(call say,"QEMU ready")
 
@@ -313,14 +351,14 @@ format: $(__DEP_TOOLBOX)
 	$(__DOCKER_RUN_TMP_PRIVILEGED) bash -c " \
 		set -x \
 		&& set -e \
-		&& dd if=/dev/zero of=$(CARD) bs=512 count=1 \
+		&& dd if=/dev/zero of=$(CARD) bs=1M count=32 \
 		&& partprobe $(CARD) \
 	"
 	$(__DOCKER_RUN_TMP_PRIVILEGED) bash -c " \
 		set -x \
 		&& set -e \
 		&& parted $(CARD) -s mklabel msdos \
-		&& parted $(CARD) -a optimal -s mkpart primary fat32 0% 256MiB \
+		&& parted $(CARD) -a optimal -s mkpart primary fat32 $(if $(findstring generic,$(BOARD)),32MiB,0) 256MiB \
 		&& parted $(CARD) -a optimal -s mkpart primary ext4 256MiB $(if $(CARD_DATA_FS_TYPE),$(CARD_DATA_BEGIN_AT),100%) \
 		&& $(if $(CARD_DATA_FS_TYPE),parted $(CARD) -a optimal -s mkpart primary $(CARD_DATA_FS_TYPE) $(CARD_DATA_BEGIN_AT) 100%,/bin/true) \
 		&& partprobe $(CARD) \
@@ -348,7 +386,7 @@ extract: $(__DEP_TOOLBOX)
 	$(call say,"Extraction complete")
 
 
-install: extract format
+install: extract format install-uboot
 	$(call say,"Installing to $(CARD)")
 	$(__DOCKER_RUN_TMP_PRIVILEGED) bash -c " \
 		mkdir -p mnt/boot mnt/rootfs \
@@ -361,6 +399,23 @@ install: extract format
 	"
 	$(call say,"Installation complete")
 
+install-uboot:
+ifneq ($(UBOOT),)
+	$(call say,"Installing U-Boot $(UBOOT) to $(CARD)")
+	$(call check_build)
+	docker run \
+		--rm \
+		--tty \
+		--volume `pwd`/$(_RPI_RESULT_ROOTFS)/boot:/tmp/boot \
+		--device $(CARD):/dev/mmcblk0 \
+		--hostname $(call read_builded_config,HOSTNAME) \
+		$(call read_builded_config,IMAGE) \
+		bash -c " \
+			echo 'y' | pacman --noconfirm -Syu uboot-pikvm-$(UBOOT) \
+			&& cp -a /boot/* /tmp/boot/ \
+		"
+	$(call say,"U-Boot installation complete")
+endif	
 
 .PHONY: toolbox
 .NOTPARALLEL: clean-all install
