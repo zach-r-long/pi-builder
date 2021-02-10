@@ -26,7 +26,7 @@
 PROJECT ?= common
 BOARD ?= rpi
 #STAGES ?= __init__ os pikvm-repo watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
-STAGES ?= __init__ os watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
+#STAGES ?= __init__ os watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
 
 HOSTNAME ?= pi
 LOCALE ?= en_US
@@ -36,13 +36,8 @@ ARCH ?= arm
 UBOOT ?=
 STAGES ?= __init__ os pikvm-repo watchdog no-bluetooth no-audit ro ssh-keygen __cleanup__
 
-HOSTNAME ?= pi
-LOCALE ?= en_US
-TIMEZONE ?= Europe/Moscow
-#REPO_URL ?= http://mirror.yandex.ru/archlinux-arm
-REPO_URL = http://de3.mirror.archlinuxarm.org
-PIKVM_REPO_URL ?= https://pikvm.org/repos
-PIKVM_REPO_KEY ?= 912C773ABBD1B584
+PIKVM_REPO_URL ?= http://127.0.0.1 
+PIKVM_REPO_KEY ?= 2CEAF2D1511FCFD8 
 BUILD_OPTS ?=
 
 CARD ?= /dev/mmcblk0
@@ -168,7 +163,7 @@ all:
 	@ echo
 	$(call say,"Available commands")
 	@ echo "    make                     # Print this help"
-	@ echo "    make rpi|rpi2|rpi3|rpi4|zero|zerow  # Build Arch-ARM rootfs with pre-defined config"
+	@ echo "    make rpi|rpi2|rpi3|rpi4|zero|zerow|rpi3cm  # Build Arch-ARM rootfs with pre-defined config"
 	@ echo "    make shell               # Run Arch-ARM shell"
 	@ echo "    make toolbox             # Build the toolbox image"
 	@ echo "    make binfmt              # Configure ARM binfmt on the host system"

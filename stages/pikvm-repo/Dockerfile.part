@@ -8,4 +8,11 @@ RUN ( \
 			zero|zerow) echo "Server = $PIKVM_REPO_URL/rpi-arm" >> /etc/pacman.conf;; \
 			*) echo "Server = $PIKVM_REPO_URL/$BOARD-$ARCH" >> /etc/pacman.conf;; \
 		esac \
-	&& echo "SigLevel = Required DatabaseOptional" >> /etc/pacman.conf
+        && case "$BOARD" in \
+                        rpi3cm) echo "Server = $PIKVM_REPO_URL/rpi3-arm" >> /etc/pacman.conf;; \
+                        *) echo "Server = $PIKVM_REPO_URL/$BOARD-$ARCH" >> /etc/pacman.conf;; \
+                esac \	
+
+
+
+&& echo "SigLevel = Required DatabaseOptional" >> /etc/pacman.conf
