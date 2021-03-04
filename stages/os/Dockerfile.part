@@ -59,7 +59,8 @@ RUN pacman --noconfirm -Syy \
     esac \
 	&& (pacman --noconfirm -Sc || true)
 
-RUN echo 'RNGD_OPTS="-o /dev/random -r /dev/hwrng"' > /etc/conf.d/rngd \
+# https://github.com/pikvm/pikvm/issues/190
+RUN echo 'RNGD_OPTS="-o /dev/random -r /dev/hwrng -x 5"' > /etc/conf.d/rngd \
 	&& systemctl disable haveged \
 	&& systemctl enable rngd
 

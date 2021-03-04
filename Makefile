@@ -63,13 +63,13 @@ _QEMU_COLLECTION = qemu
 _QEMU_STATIC = $(_QEMU_COLLECTION)/qemu-$(_QEMU_GUEST_ARCH)-static
 _QEMU_STATIC_GUEST_PATH ?= $(QEMU_PREFIX)/bin/qemu-$(_QEMU_GUEST_ARCH)-static
 
-_RPI_ROOTFS_URL = $(REPO_URL)/os/ArchLinuxARM-$(shell bash -c " \
-	if [ '$(BOARD)' == rpi -o '$(BOARD)' == zero -o '$(BOARD)' == zerow ]; then echo rpi; \
-	elif [ '$(BOARD)' == rpi2 -o '$(BOARD)' == rpi3 -o '$(BOARD)' == rpi3cm ]; then echo rpi-2; \
-	elif [ '$(BOARD)' == rpi4 ]; then echo rpi-4; \
-	else exit 1; \
-	fi \
-")-latest.tar.gz
+#_RPI_ROOTFS_URL = $(REPO_URL)/os/ArchLinuxARM-$(shell bash -c " \
+#	if [ '$(BOARD)' == rpi -o '$(BOARD)' == zero -o '$(BOARD)' == zerow ]; then #echo rpi; \
+#	elif [ '$(BOARD)' == rpi2 -o '$(BOARD)' == rpi3 -o '$(BOARD)' == rpi3cm ]; then #echo rpi-2; \
+#	elif [ '$(BOARD)' == rpi4 ]; then echo rpi-4; \
+#	else exit 1; \
+#	fi \
+#")-latest.tar.gz
 _RPI_ROOTFS_TYPE = ${shell bash -c " \
 	case '$(ARCH)' in \
 		arm) \
